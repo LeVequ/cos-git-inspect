@@ -3,7 +3,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
-import { AllowedRepositories, getGitDiff, getGitStatus } from './git-inspect.js';
+import { AllowedRepositories, getGitDiff, getGitStatus } from './cos-git-inspect.js';
 const READ_ONLY_ANNOTATIONS = {
     readOnlyHint: true,
     destructiveHint: false,
@@ -11,7 +11,7 @@ const READ_ONLY_ANNOTATIONS = {
     openWorldHint: false,
 };
 function usage() {
-    return 'Usage: cot-git-inspect --repo <absolute-path> [--repo <absolute-path> ...]';
+    return 'Usage: cos-git-inspect --repo <absolute-path> [--repo <absolute-path> ...]';
 }
 export function parseRepoArgs(args) {
     const repos = [];
@@ -48,8 +48,8 @@ function toolError(error) {
     };
 }
 export function createServer(allowed) {
-    const server = new McpServer({ name: 'cot_git_inspect', version: '0.1.0' });
-    server.registerTool('git_status', {
+    const server = new McpServer({ name: 'cos_git_inspect', version: '0.1.0' });
+    server.registerTool('cos_git_status', {
         title: 'Git status',
         description: 'Return branch, staged, unstaged, untracked, and conflict status for an explicitly allowed Git repository.',
         inputSchema: {
@@ -68,7 +68,7 @@ export function createServer(allowed) {
             return toolError(error);
         }
     });
-    server.registerTool('git_diff', {
+    server.registerTool('cos_git_diff', {
         title: 'Git diff',
         description: 'Return a bounded unified patch for unstaged changes, or staged changes when staged is true.',
         inputSchema: {
@@ -85,7 +85,7 @@ export function createServer(allowed) {
         try {
             const diff = await getGitDiff(allowed, repo_path, staged, paths);
             const prefix = diff.truncated
-                ? `[git_diff truncated at ${diff.byteLimit} bytes]\n`
+                ? `[cos_git_diff truncated at ${diff.byteLimit} bytes]\n`
                 : '';
             return {
                 content: [{ type: 'text', text: `${prefix}${diff.patch}` }],
@@ -103,14 +103,14 @@ async function main() {
     const allowed = await AllowedRepositories.create(repos);
     serveStdio(() => createServer(allowed), {
         legacy: 'serve',
-        onerror: (error) => console.error(`cot_git_inspect transport: ${error.message}`),
+        onerror: (error) => console.error(`cos_git_inspect transport: ${error.message}`),
     });
-    console.error(`cot_git_inspect ready for ${allowed.list().length} allowed repository(s).`);
+    console.error(`cos_git_inspect ready for ${allowed.list().length} allowed repository(s).`);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
     main().catch((error) => {
         const message = error instanceof Error ? error.message : String(error);
-        console.error(`cot_git_inspect: ${message}`);
+        console.error(`cos_git_inspect: ${message}`);
         process.exitCode = 1;
     });
 }
